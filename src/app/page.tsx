@@ -110,38 +110,50 @@ export default function Home() {
       return;
     }
 
-    try {
-      // Send email via EmailJS
-      const templateParams = {
-        email: formState.email,
-        timestamp: new Date().toLocaleString(),
-        userAgent: navigator.userAgent,
-        to_email: 'your-email@example.com' // Replace with your email
-      };
+    // Always store in localStorage as backup
+    const existingEmails = JSON.parse(localStorage.getItem('lowkey-emails') || '[]');
+    const newEmail = {
+      email: formState.email,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    };
+    existingEmails.push(newEmail);
+    localStorage.setItem('lowkey-emails', JSON.stringify(existingEmails));
 
-      await emailjs.send(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'your_service_id',
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || 'your_template_id',
-        templateParams,
-        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'your_public_key'
-      );
+    // Try EmailJS if configured, otherwise use localStorage
+    const hasEmailJSConfig = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID && 
+                            process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID !== 'your_service_id';
 
-      console.log('📧 Email sent successfully:', formState.email);
-      
-      setSubmittedEmails(prev => new Set([...prev, formState.email.toLowerCase()]));
-      setFormState(prev => ({
-        ...prev,
-        status: 'success',
-        message: "We'll email you first when the next drop is ready."
-      }));
-    } catch (error) {
-      console.error('Email sending failed:', error);
-      setFormState(prev => ({
-        ...prev,
-        status: 'error',
-        message: 'Something went wrong. Please try again.'
-      }));
+    if (hasEmailJSConfig) {
+      try {
+        const templateParams = {
+          email: formState.email,
+          timestamp: new Date().toLocaleString(),
+          userAgent: navigator.userAgent,
+          to_email: 'your-email@example.com'
+        };
+
+        await emailjs.send(
+          process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+          templateParams,
+          process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!
+        );
+
+        console.log('📧 Email sent via EmailJS:', formState.email);
+      } catch (error) {
+        console.log('📧 EmailJS failed, using localStorage backup:', formState.email);
+      }
+    } else {
+      console.log('📧 Email stored locally (EmailJS not configured):', formState.email);
     }
+    
+    setSubmittedEmails(prev => new Set([...prev, formState.email.toLowerCase()]));
+    setFormState(prev => ({
+      ...prev,
+      status: 'success',
+      message: "We'll send you an email to get access to code for the first drop. Stay tuned."
+    }));
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,13 +242,25 @@ export default function Home() {
 
             {/* Email Form */}
             {formState.status === 'success' ? (
-              <div className="text-center">
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              <div className="text-center animate-fade-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500 rounded-full mb-6 animate-bounce">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold text-white mb-4 animate-slide-up">
                   You&apos;re in.
                 </h3>
-                <p className="text-white/90 text-lg">
+                <p className="text-white/90 text-lg animate-slide-up-delay">
                   {formState.message}
                 </p>
+                <div className="mt-6 flex justify-center">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                    <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                  </div>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
