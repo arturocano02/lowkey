@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Simple password authentication
 // In production, you'd want to use proper authentication
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'lowkey2024';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'dashboard fix';
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface EmailData {
   email: string;
@@ -23,7 +22,6 @@ export default function DashboardPage() {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const router = useRouter();
 
   // Check if already authenticated
   useEffect(() => {
