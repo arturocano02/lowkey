@@ -109,26 +109,50 @@ export default function Home() {
       return;
     }
 
-    // Always store in localStorage as backup
-    const existingEmails = JSON.parse(localStorage.getItem('lowkey-emails') || '[]');
-    const newEmail = {
-      email: formState.email,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
-    };
-    existingEmails.push(newEmail);
-    localStorage.setItem('lowkey-emails', JSON.stringify(existingEmails));
+    try {
+      // Send email to API
+      const response = await fetch('/api/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formState.email,
+          userAgent: navigator.userAgent
+        })
+      });
 
-    // For now, just use localStorage. EmailJS will be added later when configured
-    console.log('📧 Email stored locally:', formState.email);
-    console.log('📧 Total emails collected:', existingEmails.length);
-    
-    setSubmittedEmails(prev => new Set([...prev, formState.email.toLowerCase()]));
-    setFormState(prev => ({
-      ...prev,
-      status: 'success',
-      message: "We'll send you an email to get access to code for the first drop. Stay tuned."
-    }));
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('📧 Email added successfully:', formState.email);
+        console.log('📧 Total emails collected:', data.count);
+        
+        setSubmittedEmails(prev => new Set([...prev, formState.email.toLowerCase()]));
+        setFormState(prev => ({
+          ...prev,
+          status: 'success',
+          message: "We'll send you an email to get access to code for the first drop. Stay tuned."
+        }));
+      } else {
+        if (response.status === 409) {
+          setFormState(prev => ({
+            ...prev,
+            status: 'duplicate',
+            message: "You're already on the list."
+          }));
+        } else {
+          throw new Error(data.error || 'Failed to add email');
+        }
+      }
+    } catch (error) {
+      console.error('Error adding email:', error);
+      setFormState(prev => ({
+        ...prev,
+        status: 'error',
+        message: 'Something went wrong. Please try again.'
+      }));
+    }
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
