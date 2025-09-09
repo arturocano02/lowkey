@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import emailjs from '@emailjs/browser';
 
 interface FormState {
   email: string;
@@ -120,33 +119,9 @@ export default function Home() {
     existingEmails.push(newEmail);
     localStorage.setItem('lowkey-emails', JSON.stringify(existingEmails));
 
-    // Try EmailJS if configured, otherwise use localStorage
-    const hasEmailJSConfig = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID && 
-                            process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID !== 'your_service_id';
-
-    if (hasEmailJSConfig) {
-      try {
-        const templateParams = {
-          email: formState.email,
-          timestamp: new Date().toLocaleString(),
-          userAgent: navigator.userAgent,
-          to_email: 'your-email@example.com'
-        };
-
-        await emailjs.send(
-          process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
-          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
-          templateParams,
-          process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!
-        );
-
-        console.log('📧 Email sent via EmailJS:', formState.email);
-      } catch (error) {
-        console.log('📧 EmailJS failed, using localStorage backup:', formState.email);
-      }
-    } else {
-      console.log('📧 Email stored locally (EmailJS not configured):', formState.email);
-    }
+    // For now, just use localStorage. EmailJS will be added later when configured
+    console.log('📧 Email stored locally:', formState.email);
+    console.log('📧 Total emails collected:', existingEmails.length);
     
     setSubmittedEmails(prev => new Set([...prev, formState.email.toLowerCase()]));
     setFormState(prev => ({
@@ -237,7 +212,7 @@ export default function Home() {
             </h1>
             <p className="text-lg md:text-xl lg:text-2xl text-white/90 mb-8 md:mb-12 leading-relaxed">
               Drop-style releases. Limited.<br />
-              <span className="text-white/70 text-base md:text-lg lg:text-xl">Sign up for early access to our first drop.</span>
+              <span className="text-white/70 text-base md:text-lg lg:text-xl">Sign up for early access to our first drop</span>
             </p>
 
             {/* Email Form */}
