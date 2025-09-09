@@ -4,7 +4,7 @@
 
 ### URL: `https://lowkey-flax.vercel.app/dashboard`
 
-### Default Password: `lowkey2024`
+### Default Password: `lowkey2025`
 
 ## Features
 
@@ -30,7 +30,7 @@
 
 ### 1. **Access Dashboard**
 1. Go to `https://lowkey-flax.vercel.app/dashboard`
-2. Enter password: `lowkey2024`
+2. Enter password: `lowkey2025`
 3. Click "Access Dashboard"
 
 ### 2. **View Email Collection**
@@ -109,5 +109,5 @@ For issues:
 ---
 
 **Dashboard URL**: `https://lowkey-flax.vercel.app/dashboard`  
-**Default Password**: `lowkey2024`  
+**Default Password**: `lowkey2025`  
 **Last Updated**: December 2024
