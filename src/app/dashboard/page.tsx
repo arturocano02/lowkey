@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react';
 
 interface EmailData {
+  id?: number;
   email: string;
   timestamp: string;
-  userAgent: string;
+  userAgent?: string;
+  user_agent?: string;
   ip?: string;
+  ip_address?: string;
+  created_at?: string;
 }
 
 interface EmailsResponse {
@@ -94,7 +98,7 @@ export default function DashboardPage() {
     const csvContent = [
       'Email,Timestamp,Device,IP',
       ...emails.map(email => 
-        `"${email.email}","${email.timestamp}","${email.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'}","${email.ip || 'unknown'}"`
+        `"${email.email}","${email.timestamp}","${(email.user_agent || email.userAgent || '').includes('Mobile') ? 'Mobile' : 'Desktop'}","${email.ip_address || email.ip || 'unknown'}"`
       )
     ].join('\n');
     
@@ -120,12 +124,21 @@ export default function DashboardPage() {
       const data = await response.json();
       
       if (response.ok) {
-        alert(`Backup created successfully!\nFile: ${data.backupFile}\nEmails backed up: ${data.emailsBackedUp}`);
+        // Create and download CSV file
+        const blob = new Blob([data.csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        alert(`CSV exported successfully!\nFile: ${data.filename}\nEmails exported: ${data.emailsExported}`);
       } else {
-        alert('Backup failed: ' + data.error);
+        alert('Export failed: ' + data.error);
       }
     } catch (error) {
-      alert('Backup failed: ' + error);
+      alert('Export failed: ' + error);
     }
   };
 
@@ -133,6 +146,10 @@ export default function DashboardPage() {
     if (userAgent.includes('Mobile')) return '📱 Mobile';
     if (userAgent.includes('Tablet')) return '📱 Tablet';
     return '💻 Desktop';
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
   };
 
   const getBrowserInfo = (userAgent: string) => {
@@ -212,7 +229,7 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-2xl font-bold">Lowkey Email Dashboard</h1>
               <p className="text-gray-400">Total emails collected: {emails.length}</p>
-              <p className="text-green-400 text-sm">✅ Persistent storage active - emails won&apos;t disappear on restart</p>
+              <p className="text-green-400 text-sm">✅ Supabase database active - all emails permanently stored</p>
             </div>
             <div className="flex gap-4">
               <button
@@ -226,7 +243,7 @@ export default function DashboardPage() {
                 className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
                 disabled={emails.length === 0}
               >
-                Create Backup
+                Export CSV
               </button>
               <button
                 onClick={exportCSV}
@@ -270,13 +287,13 @@ export default function DashboardPage() {
               </div>
               <div className="bg-gray-800 rounded-lg p-6">
                 <div className="text-2xl font-bold text-green-400">
-                  {emails.filter(e => e.userAgent.includes('Mobile')).length}
+                  {emails.filter(e => (e.user_agent || e.userAgent || '').includes('Mobile')).length}
                 </div>
                 <div className="text-gray-400">Mobile Users</div>
               </div>
               <div className="bg-gray-800 rounded-lg p-6">
                 <div className="text-2xl font-bold text-purple-400">
-                  {emails.filter(e => !e.userAgent.includes('Mobile')).length}
+                  {emails.filter(e => !(e.user_agent || e.userAgent || '').includes('Mobile')).length}
                 </div>
                 <div className="text-gray-400">Desktop Users</div>
               </div>
@@ -321,16 +338,16 @@ export default function DashboardPage() {
                           {email.email}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {new Date(email.timestamp).toLocaleString()}
+                          {formatDate(email.created_at || email.timestamp)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-300">
-                          {getDeviceType(email.userAgent)}
+                          {getDeviceType(email.user_agent || email.userAgent || '')}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-300">
-                          {getBrowserInfo(email.userAgent)}
+                          {getBrowserInfo(email.user_agent || email.userAgent || '')}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-300 font-mono">
-                          {email.ip || 'unknown'}
+                          {email.ip_address || email.ip || 'unknown'}
                         </td>
                       </tr>
                     ))}

@@ -1,96 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { supabase } from '@/lib/supabase';
 
-interface EmailData {
-  email: string;
-  timestamp: string;
-  userAgent: string;
-  ip?: string;
-}
-
-const EMAILS_FILE = join(process.cwd(), 'data', 'emails.json');
-const BACKUP_DIR = join(process.cwd(), 'data', 'backups');
-
-// Ensure backup directory exists
-async function ensureBackupDir() {
-  try {
-    await mkdir(BACKUP_DIR, { recursive: true });
-  } catch (error) {
-    // Directory already exists
-  }
-}
-
-// Load emails from file
-async function loadEmails(): Promise<EmailData[]> {
-  try {
-    const data = await readFile(EMAILS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-// GET - List all backups
+// GET - Get backup info
 export async function GET() {
   try {
-    await ensureBackupDir();
-    
-    // This would require reading the directory, but for simplicity,
-    // we'll just return the current email count
-    const emails = await loadEmails();
+    const { count } = await supabase
+      .from('emails')
+      .select('*', { count: 'exact', head: true });
     
     return NextResponse.json({
       success: true,
-      message: 'Backup system active',
-      currentEmails: emails.length,
-      lastBackup: emails.length > 0 ? 'Automatic backups every 10 emails' : 'No emails yet'
+      message: 'Supabase database active',
+      currentEmails: count || 0,
+      database: 'Supabase (persistent)',
+      backupInfo: 'All emails are automatically backed up in Supabase database'
     });
   } catch (error) {
-    console.error('Error checking backups:', error);
-    return NextResponse.json({ error: 'Failed to check backups' }, { status: 500 });
+    console.error('Error checking database:', error);
+    return NextResponse.json({ error: 'Failed to check database' }, { status: 500 });
   }
 }
 
-// POST - Create manual backup
+// POST - Export all emails as CSV
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { password } = body;
 
-    // Simple password check for backup access
+    // Simple password check for export access
     if (password !== 'lowkey2025') {
       return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
     }
 
-    await ensureBackupDir();
-    const emails = await loadEmails();
+    // Get all emails from Supabase
+    const { data: emails, error } = await supabase
+      .from('emails')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to fetch emails' }, { status: 500 });
+    }
     
-    if (emails.length === 0) {
+    if (!emails || emails.length === 0) {
       return NextResponse.json({ 
         success: true, 
-        message: 'No emails to backup',
+        message: 'No emails to export',
         count: 0 
       });
     }
 
-    // Create timestamped backup
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupFile = join(BACKUP_DIR, `manual-backup-${timestamp}.json`);
+    // Create CSV content
+    const csvContent = [
+      'Email,Timestamp,User Agent,IP Address,Created At',
+      ...emails.map(email => 
+        `"${email.email}","${email.timestamp}","${email.user_agent}","${email.ip_address || 'unknown'}","${email.created_at}"`
+      )
+    ].join('\n');
     
-    await writeFile(backupFile, JSON.stringify(emails, null, 2));
-    
-    console.log('📁 Manual backup created:', backupFile);
+    const timestamp = new Date().toISOString().split('T')[0];
     
     return NextResponse.json({
       success: true,
-      message: 'Backup created successfully',
-      backupFile: `manual-backup-${timestamp}.json`,
-      emailsBackedUp: emails.length,
+      message: 'CSV export ready',
+      csvContent: csvContent,
+      filename: `lowkey-emails-${timestamp}.csv`,
+      emailsExported: emails.length,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error creating backup:', error);
-    return NextResponse.json({ error: 'Failed to create backup' }, { status: 500 });
+    console.error('Error creating export:', error);
+    return NextResponse.json({ error: 'Failed to create export' }, { status: 500 });
   }
 }
