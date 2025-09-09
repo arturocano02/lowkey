@@ -4,6 +4,18 @@ import { supabase, EmailData } from '@/lib/supabase';
 // GET - Retrieve all emails
 export async function GET() {
   try {
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('❌ Supabase environment variables not set');
+      return NextResponse.json({ 
+        error: 'Database not configured. Please check environment variables.',
+        debug: {
+          hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        }
+      }, { status: 500 });
+    }
+
     const { data: emails, error } = await supabase
       .from('emails')
       .select('*')
@@ -11,19 +23,38 @@ export async function GET() {
 
     if (error) {
       console.error('Supabase error:', error);
-      return NextResponse.json({ error: 'Failed to read emails' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Failed to read emails', 
+        details: error.message,
+        code: error.code 
+      }, { status: 500 });
     }
 
     return NextResponse.json({ emails: emails || [], count: emails?.length || 0 });
   } catch (error) {
     console.error('Error reading emails:', error);
-    return NextResponse.json({ error: 'Failed to read emails' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to read emails',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
 // POST - Add new email
 export async function POST(request: NextRequest) {
   try {
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('❌ Supabase environment variables not set');
+      return NextResponse.json({ 
+        error: 'Database not configured. Please check environment variables.',
+        debug: {
+          hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        }
+      }, { status: 500 });
+    }
+
     const body = await request.json();
     const { email, userAgent } = body;
 
