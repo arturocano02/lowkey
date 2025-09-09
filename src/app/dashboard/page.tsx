@@ -107,6 +107,28 @@ export default function DashboardPage() {
     window.URL.revokeObjectURL(url);
   };
 
+  const createBackup = async () => {
+    try {
+      const response = await fetch('/api/backup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: 'lowkey2025' })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert(`Backup created successfully!\nFile: ${data.backupFile}\nEmails backed up: ${data.emailsBackedUp}`);
+      } else {
+        alert('Backup failed: ' + data.error);
+      }
+    } catch (error) {
+      alert('Backup failed: ' + error);
+    }
+  };
+
   const getDeviceType = (userAgent: string) => {
     if (userAgent.includes('Mobile')) return '📱 Mobile';
     if (userAgent.includes('Tablet')) return '📱 Tablet';
@@ -190,6 +212,7 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-2xl font-bold">Lowkey Email Dashboard</h1>
               <p className="text-gray-400">Total emails collected: {emails.length}</p>
+              <p className="text-green-400 text-sm">✅ Persistent storage active - emails won&apos;t disappear on restart</p>
             </div>
             <div className="flex gap-4">
               <button
@@ -197,6 +220,13 @@ export default function DashboardPage() {
                 className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
               >
                 Refresh
+              </button>
+              <button
+                onClick={createBackup}
+                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
+                disabled={emails.length === 0}
+              >
+                Create Backup
               </button>
               <button
                 onClick={exportCSV}
