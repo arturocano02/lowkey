@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import emailjs from '@emailjs/browser';
 
 interface FormState {
   email: string;
@@ -88,7 +89,7 @@ export default function Home() {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateEmail(formState.email)) {
@@ -109,32 +110,38 @@ export default function Home() {
       return;
     }
 
-    // Log to console and localStorage for now
-    console.log('Email submitted:', formState.email);
-    
-    // Store in localStorage for easy access
-    const existingEmails = JSON.parse(localStorage.getItem('lowkey-emails') || '[]');
-    const newEmail = {
-      email: formState.email,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
-    };
-    existingEmails.push(newEmail);
-    localStorage.setItem('lowkey-emails', JSON.stringify(existingEmails));
-    
-    // Also log to console with timestamp
-    console.log('📧 New email added to waitlist:', {
-      email: formState.email,
-      timestamp: new Date().toLocaleString(),
-      totalEmails: existingEmails.length
-    });
-    
-    setSubmittedEmails(prev => new Set([...prev, formState.email.toLowerCase()]));
-    setFormState(prev => ({
-      ...prev,
-      status: 'success',
-      message: "We'll email you first when the next drop is ready."
-    }));
+    try {
+      // Send email via EmailJS
+      const templateParams = {
+        email: formState.email,
+        timestamp: new Date().toLocaleString(),
+        userAgent: navigator.userAgent,
+        to_email: 'your-email@example.com' // Replace with your email
+      };
+
+      await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'your_service_id',
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || 'your_template_id',
+        templateParams,
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'your_public_key'
+      );
+
+      console.log('📧 Email sent successfully:', formState.email);
+      
+      setSubmittedEmails(prev => new Set([...prev, formState.email.toLowerCase()]));
+      setFormState(prev => ({
+        ...prev,
+        status: 'success',
+        message: "We'll email you first when the next drop is ready."
+      }));
+    } catch (error) {
+      console.error('Email sending failed:', error);
+      setFormState(prev => ({
+        ...prev,
+        status: 'error',
+        message: 'Something went wrong. Please try again.'
+      }));
+    }
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
